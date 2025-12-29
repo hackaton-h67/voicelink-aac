@@ -309,6 +309,163 @@ class VoiceLinkAAC {
         };
     }
 
+    initializeScenarios() {
+        return {
+            order_food: {
+                name: 'Order Food',
+                icon: '🍽️',
+                context: 'restaurant',
+                suggestions: ['I want', 'Can I have', 'No thanks', 'Yes please']
+            },
+            medical: {
+                name: 'Medical',
+                icon: '🏥',
+                context: 'hospital',
+                suggestions: ['I feel', 'Pain in', 'Help please', 'Call doctor']
+            },
+            shopping: {
+                name: 'Shopping',
+                icon: '🛒',
+                context: 'store',
+                suggestions: ['How much', 'I need', 'Where is', 'Thank you']
+            },
+            social: {
+                name: 'Social',
+                icon: '👋',
+                context: 'social',
+                suggestions: ['Hello', 'How are you', 'Goodbye', 'See you later']
+            },
+            school: {
+                name: 'School',
+                icon: '🏫',
+                context: 'school',
+                suggestions: ['I understand', 'Can you repeat', 'I need help', 'Question']
+            },
+            emergency: {
+                name: 'Emergency',
+                icon: '🚨',
+                context: 'emergency',
+                suggestions: ['Help me', 'Call 911', 'Emergency', 'I need assistance']
+            }
+        };
+    }
+
+    loadSymbols() {
+        const symbolGrid = document.getElementById('symbolGrid');
+        if (!symbolGrid) return;
+
+        symbolGrid.innerHTML = '';
+        const currentSymbols = this.symbols[this.currentCategory] || [];
+
+        currentSymbols.forEach(symbol => {
+            const symbolBtn = document.createElement('button');
+            symbolBtn.className = 'symbol-btn';
+            symbolBtn.innerHTML = `
+                <div class="symbol-image">${symbol.image}</div>
+                ${this.appSettings.showSymbolLabels ? `<div class="symbol-label">${symbol.label}</div>` : ''}
+            `;
+            symbolBtn.onclick = () => this.addSymbolToMessage(symbol);
+            symbolGrid.appendChild(symbolBtn);
+        });
+    }
+
+    addSymbolToMessage(symbol) {
+        this.currentMessage.push(symbol);
+        this.updateMessageDisplay();
+        if (this.appSettings.audioFeedback) {
+            // Play a click sound
+            const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBTGH0fPTgjMGHm7A7+OZQQ0NVarz7rpnHQc2muDy');
+            audio.volume = 0.3;
+            audio.play().catch(() => {});
+        }
+    }
+
+    setupEventListeners() {
+        // Category buttons
+        document.querySelectorAll('.category-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const category = e.target.dataset.category;
+                if (category) {
+                    this.currentCategory = category;
+                    this.loadSymbols();
+                    // Update active state
+                    document.querySelectorAll('.category-btn').forEach(b => b.classList.remove('active'));
+                    e.target.classList.add('active');
+                }
+            });
+        });
+    }
+
+    initializeSpeechSynthesis() {
+        if ('speechSynthesis' in window) {
+            // Wait for voices to load
+            speechSynthesis.onvoiceschanged = () => {
+                this.availableVoices = speechSynthesis.getVoices();
+            };
+            this.availableVoices = speechSynthesis.getVoices();
+        }
+    }
+
+    loadUserData() {
+        // Load user preferences from localStorage
+        const savedData = localStorage.getItem('voicelinkUserData');
+        if (savedData) {
+            try {
+                const userData = JSON.parse(savedData);
+                if (userData.conversationContext) {
+                    this.conversationContext = {...this.conversationContext, ...userData.conversationContext};
+                }
+                if (userData.voiceSettings) {
+                    this.voiceSettings = {...this.voiceSettings, ...userData.voiceSettings};
+                }
+            } catch (e) {
+                console.error('Error loading user data:', e);
+            }
+        }
+    }
+
+    updateContextIndicator() {
+        const indicator = document.querySelector('.context-indicator');
+        if (indicator) {
+            const location = this.conversationContext.location || 'home';
+            const icon = location === 'home' ? '🏠' : location === 'school' ? '🏫' : '📍';
+            indicator.innerHTML = `${icon} At ${location.charAt(0).toUpperCase() + location.slice(1)}`;
+        }
+    }
+
+    startLLMMonitoring() {
+        // Monitor conversation patterns for AI suggestions
+        setInterval(() => {
+            if (this.llmContext.conversationHistory.length > 0) {
+                // Simple pattern detection
+                console.log('Monitoring conversation patterns...');
+            }
+        }, 30000); // Check every 30 seconds
+    }
+
+    getTimeOfDay() {
+        const hour = new Date().getHours();
+        if (hour < 12) return 'morning';
+        if (hour < 18) return 'afternoon';
+        return 'evening';
+    }
+
+    loadUserPreferences() {
+        const saved = localStorage.getItem('userPreferences');
+        return saved ? JSON.parse(saved) : {};
+    }
+
+    addToConversationHistory(text) {
+        this.llmContext.conversationHistory.push({
+            text,
+            timestamp: new Date().toISOString()
+        });
+        // Keep only last 50 messages
+        if (this.llmContext.conversationHistory.length > 50) {
+            this.llmContext.conversationHistory.shift();
+        }
+    }
+
     // Settings Management
     loadSettings() {
         const savedSettings = localStorage.getItem('voicelink_settings');
@@ -682,8 +839,134 @@ class VoiceLinkAAC {
         this.showScenarioSelector();
     }
 
-    // [Rest of the live conversation mode implementation remains unchanged]
-    // ... [Previous live mode methods] ...
+    deactivateLiveMode() {
+        this.liveMode.isActive = false;
+        if (this.liveMode.recognition) {
+            this.liveMode.recognition.stop();
+        }
+    }
+
+    setupSpeechRecognition() {
+        if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+            this.showNotification('Speech recognition not supported in this browser');
+            return;
+        }
+
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        this.liveMode.recognition = new SpeechRecognition();
+        this.liveMode.recognition.continuous = true;
+        this.liveMode.recognition.interimResults = true;
+
+        this.liveMode.recognition.onresult = (event) => {
+            const transcript = Array.from(event.results)
+                .map(result => result[0])
+                .map(result => result.transcript)
+                .join('');
+
+            this.liveMode.transcript = transcript;
+            document.getElementById('liveTranscript').textContent = transcript;
+        };
+    }
+
+    showScenarioSelector() {
+        // Show scenario selection UI
+        console.log('Showing scenario selector');
+    }
+
+    toggleRecording() {
+        if (!this.liveMode.isRecording) {
+            this.liveMode.recognition?.start();
+            this.liveMode.isRecording = true;
+            const recordBtn = document.getElementById('recordBtn');
+            if (recordBtn) {
+                recordBtn.textContent = '⏹️ Stop Recording';
+                recordBtn.classList.add('active');
+            }
+        } else {
+            this.liveMode.recognition?.stop();
+            this.liveMode.isRecording = false;
+            const recordBtn = document.getElementById('recordBtn');
+            if (recordBtn) {
+                recordBtn.textContent = '🎤 Start Recording';
+                recordBtn.classList.remove('active');
+            }
+        }
+    }
+
+    selectScenario() {
+        // Simple scenario selection - in production this would show a modal
+        const scenarios = ['order_food', 'medical', 'shopping', 'social', 'school', 'emergency'];
+        const scenario = scenarios[Math.floor(Math.random() * scenarios.length)];
+        this.liveMode.currentScenario = scenario;
+        this.showNotification(`Scenario: ${scenario.replace('_', ' ').toUpperCase()}`);
+    }
+
+    closeLiveMode() {
+        this.deactivateLiveMode();
+        const liveModePanel = document.getElementById('liveModePanel');
+        const liveModeBtn = document.getElementById('liveModeBtn');
+        if (liveModePanel) liveModePanel.style.display = 'none';
+        if (liveModeBtn) {
+            liveModeBtn.classList.remove('active');
+            liveModeBtn.style.color = '';
+        }
+    }
+
+    toggleAccessibility() {
+        // Simple toggle for accessibility panel
+        const settingsPanel = document.getElementById('settingsPanel');
+        if (settingsPanel) {
+            settingsPanel.classList.toggle('open');
+            // Scroll to accessibility section
+            const accessibilitySection = settingsPanel.querySelector('h4');
+            if (accessibilitySection) {
+                accessibilitySection.scrollIntoView({ behavior: 'smooth' });
+            }
+        }
+    }
+
+    clearMessage() {
+        this.currentMessage = [];
+        this.updateMessageDisplay();
+        this.showNotification('Message cleared');
+    }
+
+    savePhrase() {
+        if (this.currentMessage.length === 0) {
+            this.showNotification('No message to save');
+            return;
+        }
+
+        const messageText = this.currentMessage.map(symbol => symbol.label).join(' ');
+        const savedPhrases = JSON.parse(localStorage.getItem('savedPhrases') || '[]');
+        savedPhrases.push({
+            text: messageText,
+            symbols: this.currentMessage,
+            timestamp: new Date().toISOString()
+        });
+        localStorage.setItem('savedPhrases', JSON.stringify(savedPhrases));
+        this.showNotification('Phrase saved!');
+    }
+
+    selectEmotion(emotion) {
+        this.currentEmotion = emotion;
+        // Update visual feedback
+        document.querySelectorAll('.emotion-btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        const emotionBtn = document.querySelector(`[data-emotion="${emotion}"]`);
+        if (emotionBtn) {
+            emotionBtn.classList.add('active');
+        }
+        this.showNotification(`Emotion: ${emotion}`);
+    }
+
+    updateMessageDisplay() {
+        const messageDisplay = document.getElementById('currentMessage');
+        if (messageDisplay) {
+            messageDisplay.textContent = this.currentMessage.map(s => s.label).join(' ');
+        }
+    }
 
     // Utility Functions
     shareMessage() {
@@ -816,6 +1099,42 @@ function clearAllData() {
 
 function shareMessage() {
     aacApp.shareMessage();
+}
+
+function toggleLiveMode() {
+    aacApp.toggleLiveMode();
+}
+
+function toggleAccessibility() {
+    aacApp.toggleAccessibility();
+}
+
+function toggleRecording() {
+    aacApp.toggleRecording();
+}
+
+function selectScenario() {
+    aacApp.selectScenario();
+}
+
+function closeLiveMode() {
+    aacApp.closeLiveMode();
+}
+
+function clearMessage() {
+    aacApp.clearMessage();
+}
+
+function speakMessage() {
+    aacApp.speakMessage();
+}
+
+function savePhrase() {
+    aacApp.savePhrase();
+}
+
+function selectEmotion(emotion) {
+    aacApp.selectEmotion(emotion);
 }
 
 // Initialize app when DOM is loaded
