@@ -186,6 +186,7 @@
 
         /* Emotional Expression Panel */
         .emotion-panel {
+            display: none; /* Hidden - use emotion dropdown in header instead */
             background: white;
             border-radius: 12px;
             padding: var(--space-lg);
@@ -891,7 +892,7 @@
                 <button class="settings-btn" onclick="toggleLiveMode()" aria-label="Live Conversation Mode" id="liveModeBtn">
                     <i class="fas fa-microphone"></i>
                 </button>
-                <button class="settings-btn" onclick="toggleEmotionMenu()" aria-label="How I Feel" id="emotionMenuBtn">
+                <button class="settings-btn" onclick="toggleEmotionMenu()" aria-label="Select how you feel" title="Click to select your current emotion" id="emotionMenuBtn">
                     <i class="fas fa-smile"></i>
                 </button>
                 <button class="settings-btn" onclick="toggleSettings()" aria-label="Settings" id="settingsBtn">
@@ -905,7 +906,8 @@
 
         <!-- Emotion Dropdown Menu -->
         <div class="emotion-dropdown" id="emotionDropdown">
-            <h4 style="margin: 0 0 12px 0; font-size: 14px; color: var(--color-text);"><i class="fas fa-heart"></i> How I Feel</h4>
+            <h4 style="margin: 0 0 8px 0; font-size: 14px; color: var(--color-text); font-weight: 600;"><i class="fas fa-heart"></i> How I Feel</h4>
+            <p style="margin: 0 0 12px 0; font-size: 12px; color: var(--color-gray); line-height: 1.4;">Click an emotion below to add it to your message</p>
             <div class="emotion-dropdown-grid">
                 <button class="emotion-dropdown-btn" data-emotion="happy" onclick="selectEmotionFromMenu('happy')" aria-label="Happy">
                     <span class="emotion-dropdown-icon">😊</span>
