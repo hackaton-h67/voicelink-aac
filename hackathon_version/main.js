@@ -1214,6 +1214,25 @@ function selectEmotionFromMenu(emotion) {
     toggleEmotionMenu();
 }
 
+function switchCategory(category) {
+    aacApp.currentCategory = category;
+    aacApp.loadSymbols();
+
+    // Update active state of category tabs
+    document.querySelectorAll('.category-tab').forEach(tab => {
+        tab.classList.remove('active');
+    });
+
+    // Find and activate the clicked tab
+    const tabs = document.querySelectorAll('.category-tab');
+    tabs.forEach(tab => {
+        if (tab.textContent.toLowerCase().includes(category.toLowerCase()) ||
+            (category === 'core' && tab.textContent.includes('Core'))) {
+            tab.classList.add('active');
+        }
+    });
+}
+
 async function saveElevenLabsApiKey(apiKey) {
     if (!apiKey || apiKey.trim() === '') {
         localStorage.removeItem('elevenlabs_api_key');
