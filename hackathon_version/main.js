@@ -92,70 +92,97 @@ class VoiceLinkAAC {
     }
 
     async loadElevenLabsVoices() {
+        // Load API key from localStorage if available
+        const savedApiKey = localStorage.getItem('elevenlabs_api_key');
+        if (savedApiKey) {
+            this.elevenLabs.apiKey = savedApiKey;
+        }
+
+        if (!this.elevenLabs.apiKey) {
+            console.log('No ElevenLabs API key configured');
+            return;
+        }
+
         try {
-            // Mock ElevenLabs voices for demo
-            this.elevenLabs.voices = [
-                {
-                    id: 'eleven_labs_1',
-                    name: 'Alex - Natural Male',
-                    description: 'Warm, conversational male voice',
-                    preview: 'https://elevenlabs.io/preview/alex'
-                },
-                {
-                    id: 'eleven_labs_2', 
-                    name: 'Sarah - Natural Female',
-                    description: 'Clear, friendly female voice',
-                    preview: 'https://elevenlabs.io/preview/sarah'
-                },
-                {
-                    id: 'eleven_labs_3',
-                    name: 'Jordan - Youth Voice',
-                    description: 'Young, energetic voice',
-                    preview: 'https://elevenlabs.io/preview/jordan'
-                },
-                {
-                    id: 'eleven_labs_4',
-                    name: 'Maya - Calm Voice',
-                    description: 'Peaceful, soothing voice',
-                    preview: 'https://elevenlabs.io/preview/maya'
+            const response = await fetch('https://api.elevenlabs.io/v1/voices', {
+                method: 'GET',
+                headers: {
+                    'xi-api-key': this.elevenLabs.apiKey
                 }
-            ];
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                this.elevenLabs.voices = data.voices.map(voice => ({
+                    id: voice.voice_id,
+                    name: voice.name,
+                    description: voice.labels?.description || 'ElevenLabs voice',
+                    category: voice.category
+                }));
+
+                // Select first voice by default
+                if (this.elevenLabs.voices.length > 0) {
+                    this.elevenLabs.currentVoice = this.elevenLabs.voices[0];
+                    this.elevenLabs.isReady = true;
+                }
+
+                console.log(`Loaded ${this.elevenLabs.voices.length} ElevenLabs voices`);
+            } else {
+                console.error('Failed to load ElevenLabs voices:', response.status);
+            }
         } catch (error) {
             console.log('ElevenLabs voices not available:', error);
         }
     }
 
     async synthesizeWithElevenLabs(text) {
-        if (!this.elevenLabs.isReady || !this.elevenLabs.currentVoice) {
+        if (!this.elevenLabs.apiKey || !this.elevenLabs.currentVoice) {
+            console.log('ElevenLabs not configured, falling back to system voice');
             return false;
         }
-        
+
         try {
-            // Mock ElevenLabs synthesis for demo
             console.log('Synthesizing with ElevenLabs:', text);
-            
-            // In real implementation, this would call ElevenLabs API
-            // const response = await fetch('https://api.elevenlabs.io/v1/text-to-speech/' + this.elevenLabs.currentVoice.id, {
-            //     method: 'POST',
-            //     headers: {
-            //         'Accept': 'audio/mpeg',
-            //         'Content-Type': 'application/json',
-            //         'xi-api-key': this.elevenLabs.apiKey
-            //     },
-            //     body: JSON.stringify({
-            //         text: text,
-            //         model_id: 'eleven_monolingual_v1',
-            //         voice_settings: {
-            //             stability: 0.5,
-            //             similarity_boost: 0.5
-            //         }
-            //     })
-            // });
-            
-            // For demo, fall back to system speech
-            return false;
+
+            const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${this.elevenLabs.currentVoice.id}`, {
+                method: 'POST',
+                headers: {
+                    'Accept': 'audio/mpeg',
+                    'Content-Type': 'application/json',
+                    'xi-api-key': this.elevenLabs.apiKey
+                },
+                body: JSON.stringify({
+                    text: text,
+                    model_id: 'eleven_monolingual_v1',
+                    voice_settings: {
+                        stability: 0.5,
+                        similarity_boost: 0.5
+                    }
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error(`ElevenLabs API error: ${response.status} ${response.statusText}`);
+            }
+
+            const audioBlob = await response.blob();
+            const audioUrl = URL.createObjectURL(audioBlob);
+            const audio = new Audio(audioUrl);
+
+            // Apply voice settings
+            audio.playbackRate = this.voiceSettings.speechRate || 1.0;
+
+            await audio.play();
+
+            // Clean up
+            audio.onended = () => {
+                URL.revokeObjectURL(audioUrl);
+            };
+
+            return true;
         } catch (error) {
             console.error('ElevenLabs synthesis failed:', error);
+            this.showNotification('ElevenLabs synthesis failed, using system voice');
             return false;
         }
     }
@@ -554,6 +581,12 @@ class VoiceLinkAAC {
         const touchTargetSizeSelect = document.getElementById('touchTargetSize');
         if (touchTargetSizeSelect) {
             touchTargetSizeSelect.value = this.appSettings.touchTargetSize;
+        }
+
+        // Update ElevenLabs API key field
+        const apiKeyInput = document.getElementById('elevenLabsApiKey');
+        if (apiKeyInput && this.elevenLabs.apiKey) {
+            apiKeyInput.value = this.elevenLabs.apiKey;
         }
     }
 
@@ -1135,6 +1168,61 @@ function savePhrase() {
 
 function selectEmotion(emotion) {
     aacApp.selectEmotion(emotion);
+}
+
+async function saveElevenLabsApiKey(apiKey) {
+    if (!apiKey || apiKey.trim() === '') {
+        localStorage.removeItem('elevenlabs_api_key');
+        aacApp.elevenLabs.apiKey = null;
+        aacApp.elevenLabs.isReady = false;
+        aacApp.showNotification('ElevenLabs API key removed');
+        return;
+    }
+
+    localStorage.setItem('elevenlabs_api_key', apiKey.trim());
+    aacApp.elevenLabs.apiKey = apiKey.trim();
+    aacApp.showNotification('API key saved! Loading voices...');
+
+    // Reload voices with new API key
+    await aacApp.loadElevenLabsVoices();
+
+    if (aacApp.elevenLabs.isReady) {
+        aacApp.showNotification(`✓ Loaded ${aacApp.elevenLabs.voices.length} ElevenLabs voices`);
+    } else {
+        aacApp.showNotification('⚠ Could not load voices. Check API key.');
+    }
+}
+
+async function testElevenLabsConnection() {
+    const apiKey = document.getElementById('elevenLabsApiKey').value;
+
+    if (!apiKey) {
+        aacApp.showNotification('Please enter an API key first');
+        return;
+    }
+
+    aacApp.showNotification('Testing connection...');
+
+    try {
+        const response = await fetch('https://api.elevenlabs.io/v1/voices', {
+            method: 'GET',
+            headers: {
+                'xi-api-key': apiKey
+            }
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            aacApp.showNotification(`✓ Connected! Found ${data.voices.length} voices`);
+        } else if (response.status === 401) {
+            aacApp.showNotification('✗ Invalid API key');
+        } else {
+            aacApp.showNotification(`✗ Error: ${response.status}`);
+        }
+    } catch (error) {
+        aacApp.showNotification('✗ Connection failed');
+        console.error('Connection test failed:', error);
+    }
 }
 
 // Initialize app when DOM is loaded
