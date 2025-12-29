@@ -153,7 +153,7 @@ class VoiceLinkAAC {
                 },
                 body: JSON.stringify({
                     text: text,
-                    model_id: 'eleven_monolingual_v1',
+                    model_id: 'eleven_turbo_v2_5',
                     voice_settings: {
                         stability: 0.5,
                         similarity_boost: 0.5
@@ -821,11 +821,7 @@ class VoiceLinkAAC {
             };
             
             speechSynthesis.speak(utterance);
-            
-            if (this.appSettings.audioFeedback) {
-                this.playFeedbackSound();
-            }
-            
+
             // Add to conversation history
             this.addToConversationHistory(messageText);
         } else {
@@ -995,9 +991,13 @@ class VoiceLinkAAC {
     }
 
     updateMessageDisplay() {
-        const messageDisplay = document.getElementById('currentMessage');
+        const messageDisplay = document.getElementById('messageDisplay');
         if (messageDisplay) {
-            messageDisplay.textContent = this.currentMessage.map(s => s.label).join(' ');
+            if (this.currentMessage.length === 0) {
+                messageDisplay.innerHTML = '<span class="placeholder-text">Tap symbols to start communicating...</span>';
+            } else {
+                messageDisplay.textContent = this.currentMessage.map(s => s.label).join(' ');
+            }
         }
     }
 
