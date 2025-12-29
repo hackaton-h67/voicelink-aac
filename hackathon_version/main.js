@@ -1233,6 +1233,67 @@ function switchCategory(category) {
     });
 }
 
+function addSuggestion(text) {
+    // Add suggestion text to message
+    // For single words, try to find matching symbol
+    const words = text.split(' ');
+
+    if (words.length === 1) {
+        // Single word - try to find matching symbol in current category or core
+        const allSymbols = [
+            ...aacApp.symbols.core,
+            ...aacApp.symbols.people,
+            ...aacApp.symbols.actions,
+            ...aacApp.symbols.objects,
+            ...aacApp.symbols.places,
+            ...aacApp.symbols.descriptors
+        ];
+
+        const matchingSymbol = allSymbols.find(s =>
+            s.label.toLowerCase() === text.toLowerCase()
+        );
+
+        if (matchingSymbol) {
+            aacApp.addSymbolToMessage(matchingSymbol);
+        } else {
+            // No matching symbol, add as text
+            aacApp.currentMessage.push({ label: text, image: '💬', id: 'text_' + Date.now() });
+            aacApp.updateMessageDisplay();
+        }
+    } else {
+        // Multi-word phrase - add each word
+        words.forEach(word => {
+            if (word.trim()) {
+                const allSymbols = [
+                    ...aacApp.symbols.core,
+                    ...aacApp.symbols.people,
+                    ...aacApp.symbols.actions,
+                    ...aacApp.symbols.objects,
+                    ...aacApp.symbols.places,
+                    ...aacApp.symbols.descriptors
+                ];
+
+                const matchingSymbol = allSymbols.find(s =>
+                    s.label.toLowerCase() === word.toLowerCase()
+                );
+
+                if (matchingSymbol) {
+                    aacApp.currentMessage.push(matchingSymbol);
+                } else {
+                    aacApp.currentMessage.push({ label: word, image: '💬', id: 'text_' + Date.now() });
+                }
+            }
+        });
+        aacApp.updateMessageDisplay();
+    }
+
+    if (aacApp.appSettings.audioFeedback) {
+        const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBTGH0fPTgjMGHm7A7+OZQQ0NVarz7rpnHQc2muDy');
+        audio.volume = 0.3;
+        audio.play().catch(() => {});
+    }
+}
+
 async function saveElevenLabsApiKey(apiKey) {
     if (!apiKey || apiKey.trim() === '') {
         localStorage.removeItem('elevenlabs_api_key');
