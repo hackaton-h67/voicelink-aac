@@ -687,6 +687,64 @@
             font-weight: 500;
         }
 
+        /* Emotion Dropdown Menu */
+        .emotion-dropdown {
+            display: none;
+            position: fixed;
+            top: 70px;
+            right: 60px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+            padding: 16px;
+            z-index: 900;
+            min-width: 280px;
+        }
+
+        .emotion-dropdown.open {
+            display: block;
+        }
+
+        .emotion-dropdown-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+        }
+
+        .emotion-dropdown-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            padding: 12px;
+            background: var(--color-bg-secondary);
+            border: 2px solid transparent;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .emotion-dropdown-btn:hover {
+            background: var(--color-primary-light);
+            border-color: var(--color-primary);
+            transform: translateY(-2px);
+        }
+
+        .emotion-dropdown-btn.active {
+            background: var(--color-primary);
+            color: white;
+            border-color: var(--color-primary);
+        }
+
+        .emotion-dropdown-icon {
+            font-size: 28px;
+        }
+
+        .emotion-dropdown-label {
+            font-size: 12px;
+            font-weight: 500;
+        }
+
         /* Responsive Design */
         @media (max-width: 1200px) {
             .main-content {
@@ -730,6 +788,23 @@
             .settings-panel {
                 width: 100%;
                 right: -100%;
+            }
+
+            /* Hide original emotion panel on mobile */
+            .emotion-panel {
+                display: none;
+            }
+
+            /* Adjust emotion dropdown for mobile */
+            .emotion-dropdown {
+                right: 10px;
+                left: 10px;
+                top: 60px;
+                min-width: auto;
+            }
+
+            .context-indicator {
+                display: none;
             }
         }
 
@@ -816,6 +891,9 @@
                 <button class="settings-btn" onclick="toggleLiveMode()" aria-label="Live Conversation Mode" id="liveModeBtn">
                     <i class="fas fa-microphone"></i>
                 </button>
+                <button class="settings-btn" onclick="toggleEmotionMenu()" aria-label="How I Feel" id="emotionMenuBtn">
+                    <i class="fas fa-smile"></i>
+                </button>
                 <button class="settings-btn" onclick="toggleSettings()" aria-label="Settings" id="settingsBtn">
                     <i class="fas fa-cog"></i>
                 </button>
@@ -824,6 +902,37 @@
                 </button>
             </div>
         </header>
+
+        <!-- Emotion Dropdown Menu -->
+        <div class="emotion-dropdown" id="emotionDropdown">
+            <h4 style="margin: 0 0 12px 0; font-size: 14px; color: var(--color-text);"><i class="fas fa-heart"></i> How I Feel</h4>
+            <div class="emotion-dropdown-grid">
+                <button class="emotion-dropdown-btn" data-emotion="happy" onclick="selectEmotionFromMenu('happy')" aria-label="Happy">
+                    <span class="emotion-dropdown-icon">😊</span>
+                    <span class="emotion-dropdown-label">Happy</span>
+                </button>
+                <button class="emotion-dropdown-btn" data-emotion="sad" onclick="selectEmotionFromMenu('sad')" aria-label="Sad">
+                    <span class="emotion-dropdown-icon">😢</span>
+                    <span class="emotion-dropdown-label">Sad</span>
+                </button>
+                <button class="emotion-dropdown-btn" data-emotion="angry" onclick="selectEmotionFromMenu('angry')" aria-label="Angry">
+                    <span class="emotion-dropdown-icon">😠</span>
+                    <span class="emotion-dropdown-label">Angry</span>
+                </button>
+                <button class="emotion-dropdown-btn" data-emotion="excited" onclick="selectEmotionFromMenu('excited')" aria-label="Excited">
+                    <span class="emotion-dropdown-icon">🤩</span>
+                    <span class="emotion-dropdown-label">Excited</span>
+                </button>
+                <button class="emotion-dropdown-btn" data-emotion="tired" onclick="selectEmotionFromMenu('tired')" aria-label="Tired">
+                    <span class="emotion-dropdown-icon">😴</span>
+                    <span class="emotion-dropdown-label">Tired</span>
+                </button>
+                <button class="emotion-dropdown-btn" data-emotion="scared" onclick="selectEmotionFromMenu('scared')" aria-label="Scared">
+                    <span class="emotion-dropdown-icon">😨</span>
+                    <span class="emotion-dropdown-label">Scared</span>
+                </button>
+            </div>
+        </div>
 
         <!-- Settings Panel -->
         <aside class="settings-panel" id="settingsPanel">

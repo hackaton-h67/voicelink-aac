@@ -1170,6 +1170,50 @@ function selectEmotion(emotion) {
     aacApp.selectEmotion(emotion);
 }
 
+function toggleEmotionMenu() {
+    const dropdown = document.getElementById('emotionDropdown');
+    const btn = document.getElementById('emotionMenuBtn');
+
+    if (dropdown.classList.contains('open')) {
+        dropdown.classList.remove('open');
+        btn.classList.remove('active');
+    } else {
+        dropdown.classList.add('open');
+        btn.classList.add('active');
+    }
+}
+
+function selectEmotionFromMenu(emotion) {
+    aacApp.selectEmotion(emotion);
+
+    // Update dropdown button states
+    document.querySelectorAll('.emotion-dropdown-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    const emotionBtn = document.querySelector(`.emotion-dropdown-btn[data-emotion="${emotion}"]`);
+    if (emotionBtn) {
+        emotionBtn.classList.add('active');
+    }
+
+    // Update header button icon based on selected emotion
+    const emotionIcons = {
+        happy: 'fa-smile',
+        sad: 'fa-frown',
+        angry: 'fa-angry',
+        excited: 'fa-grin-stars',
+        tired: 'fa-tired',
+        scared: 'fa-surprise'
+    };
+
+    const menuBtn = document.getElementById('emotionMenuBtn');
+    if (menuBtn && emotionIcons[emotion]) {
+        menuBtn.querySelector('i').className = `fas ${emotionIcons[emotion]}`;
+    }
+
+    // Close dropdown after selection
+    toggleEmotionMenu();
+}
+
 async function saveElevenLabsApiKey(apiKey) {
     if (!apiKey || apiKey.trim() === '') {
         localStorage.removeItem('elevenlabs_api_key');

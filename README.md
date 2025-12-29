@@ -145,7 +145,8 @@ This is a hackathon submission project. For questions or collaboration inquiries
 
 ## 🔗 Links
 
-- **Live Demo**: https://wxcuiv3ozvuhg.ok.kimi.link
+- **Live Demo**: https://hackaton-h67.github.io/voicelink-aac/
+- **GitHub Repository**: https://github.com/hackaton-h67/voicelink-aac
 - **Hackathon Submission Details**: [HACKATHON_SUBMISSION.md](hackathon_version/HACKATHON_SUBMISSION.md)
 - **Documentation**: [docs/](docs/)
 
